@@ -1,6 +1,7 @@
 from rdkit import Chem
 from rdkit.Chem import Draw, Descriptors, rdFingerprintGenerator
 import pandas as pd
+import numpy as np
 
 class MolecularProcessor:
     def __init__(self, csv_file):
@@ -9,7 +10,9 @@ class MolecularProcessor:
         self.df = self.df[self.df['Molecule'].notnull()] # Remove invalid molecules
         self.visualize()
         self.calculate_descriptors()
+        self.compute_similarity()
         print(self.df)
+    
     
     def smiles_to_mol(self, smiles):
         """Convert SMILES string to RDKit Mol object."""
@@ -18,6 +21,7 @@ class MolecularProcessor:
             print(f"Warning: Invalid SMILES string: {smiles}")
         return mol
 
+    
     def visualize(self):
         """Visualize and save the molecules with labels."""
         mols = self.df['Molecule'].tolist()
@@ -26,6 +30,7 @@ class MolecularProcessor:
         img = Draw.MolsToGridImage(mols, molsPerRow=4, subImgSize=(200, 200), legends=labels)
         img.show()
         img.save('molecules_with_labels.png')
+
 
     def calculate_descriptors(self):
         """Calculate molecular descriptors for each molecule."""
@@ -51,4 +56,28 @@ class MolecularProcessor:
         self.df['MorganFingerprint'] = self.df['Molecule'].apply(lambda mol: generator.GetFingerprintAsNumPy(mol)) 
         self.df.to_csv('molecule_descriptors.csv', index=False)
 
-processor = MolecularProcessor('data/diabetes_drugs.csv')
+    
+    def compute_similarity(self):
+        """Compute similarity between the input molecule and the molecules in the dataset."""
+        def tanimoto_similarity(fp1, fp2):
+            intersection = np.dot(fp1, fp2)
+            union = np.sum(fp1) + np.sum(fp2) - intersection
+            return intersection / union
+            
+        drugs = self.df['Drug Name'].tolist()
+        similarity_matrix = []
+
+        for i in range(len(self.df)):
+            similarities = []
+            for j in range(len(self.df)):
+                sim = tanimoto_similarity(self.df['MorganFingerprint'].iloc[i], self.df['MorganFingerprint'].iloc[j])
+                similarities.append(sim)
+            similarity_matrix.append(similarities)
+
+        similarity_df = pd.DataFrame(similarity_matrix, index=drugs, columns=drugs)
+        print(similarity_df)
+
+
+
+if __name__ == '__main__':
+    processor = MolecularProcessor('data/diabetes_drugs.csv')
