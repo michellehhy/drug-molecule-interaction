@@ -1,4 +1,4 @@
 __pycache__
 myenv/
 .DS_Store
-*.png
+output/
