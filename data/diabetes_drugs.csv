@@ -1,4 +1,4 @@
-Drug Name,SMILES
+DrugName,SMILES
 Metformin,CN(C)C(=N)N=C(N)N
 Glimepiride,CCC1=C(CN(C1=O)C(=O)NCCC2=CC=C(C=C2)S(=O)(=O)NC(=O)NC3CCC(CC3)C)C
 Glyburide,COC1=C(C=C(C=C1)Cl)C(=O)NCCC2=CC=C(C=C2)S(=O)(=O)NC(=O)NC3CCCCC3
