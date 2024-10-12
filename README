@@ -1,0 +1,6 @@
+Create a Virtual Environment: `python3 -m venv myenv`
+Activate the Virtual Environment: `source myenv/bin/activate`
+Install Packages in the Virtual Environment: `pip install -r requirements.txt`
+Deactivate the Virtual Environment: `deactivate`
+
+Run the App: `python3 app.py`
