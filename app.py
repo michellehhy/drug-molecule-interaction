@@ -1,12 +1,13 @@
 from rdkit import Chem
 from rdkit.Chem import Draw, Descriptors, rdFingerprintGenerator
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.model_selection import train_test_split, RandomizedSearchCV, cross_val_score
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import matplotlib.pyplot as plt
-
+import joblib
 import pandas as pd
 import numpy as np
+import json
 
 class MolecularProcessor:
     def __init__(self, csv_file):
@@ -16,7 +17,7 @@ class MolecularProcessor:
         self.visualize()
         self.calculate_descriptors()
         self.compute_similarity()
-        self.predict()
+        self.predict_random_forest()
     
     def smiles_to_mol(self, smiles):
         """Convert SMILES string to RDKit Mol object."""
@@ -82,7 +83,7 @@ class MolecularProcessor:
         print(similarity_df)
 
     
-    def predict(self):
+    def predict_random_forest(self):
         X = self.df[['MolecularWeight', 'NumRotatableBonds', 'NumHBA', 'NumHBD', 'TPSA']]  # Feature set
         y = self.df['LogP']  # Target variable
 
@@ -99,7 +100,11 @@ class MolecularProcessor:
         random_search.fit(X_train, y_train)
         print(f"Best parameters: {random_search.best_params_}")
         print(f"Best Mean Squared Error: {-random_search.best_score_}")
+        
         best_model = random_search.best_estimator_
+        joblib.dump(best_model, 'best_random_forest_model.pkl')
+        with open('best_hyperparametres.json', 'w') as f:
+            json.dump(random_search.best_params_, f)
 
         y_pred = best_model .predict(X_test)
 
@@ -107,11 +112,14 @@ class MolecularProcessor:
         r2 = r2_score(y_test, y_pred)
         mae = mean_absolute_error(y_test, y_pred)
         rmse = np.sqrt(mse)
+        cv_scores = cross_val_score(best_model, X, y, cv=5, scoring='neg_mean_squared_error')
+        cv_mse = -cv_scores.mean()
 
         print(f"Test Set - Mean Squared Error: {mse}")
         print(f"Test Set - R-squared: {r2}")
         print(f"Mean Absolute Error: {mae}")
         print(f"Root Mean Squared Error: {rmse}")
+        print(f"Cross-Validated MSE: {cv_mse}")
 
         test_drugs = self.df.loc[X_test.index, 'DrugName']
         for i in range(len(y_test)):
@@ -122,6 +130,18 @@ class MolecularProcessor:
         plt.xlabel('Actual LogP')
         plt.ylabel('Predicted LogP')
         plt.title('Grid Search - Actual vs Predicted LogP')
+        plt.show()
+
+        # Feature Importance   
+        importances = best_model.feature_importances_
+        features = X.columns
+        indices = np.argsort(importances)[::-1]
+        plt.figure(figsize=(10, 6))
+        plt.title("Feature Importances")
+        plt.barh(range(len(indices)), importances[indices], align='center')
+        plt.yticks(range(len(indices)), [features[i] for i in indices])
+        plt.xlabel('Relative Importance')
+        plt.gca().invert_yaxis()
         plt.show()
 
 
